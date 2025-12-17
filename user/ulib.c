@@ -33,6 +33,7 @@ strcmp(const char *p, const char *q)
   return (uchar)*p - (uchar)*q;
 }
 
+// return length of string
 uint
 strlen(const char *s)
 {
@@ -43,6 +44,7 @@ strlen(const char *s)
   return n;
 }
 
+// Fill block with value
 void*
 memset(void *dst, int c, uint n)
 {
@@ -81,6 +83,7 @@ gets(char *buf, int max)
   return buf;
 }
 
+// Populate stat struct with information
 int
 stat(const char *n, struct stat *st)
 {
@@ -106,6 +109,8 @@ atoi(const char *s)
   return n;
 }
 
+// copy block of memory over 
+// from one location to another
 void*
 memmove(void *vdst, const void *vsrc, int n)
 {
@@ -126,6 +131,7 @@ memmove(void *vdst, const void *vsrc, int n)
   return vdst;
 }
 
+// compare two blocks of memory
 int
 memcmp(const void *s1, const void *s2, uint n)
 {

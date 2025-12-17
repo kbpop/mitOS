@@ -49,13 +49,19 @@ ls(char *path)
     break;
 
   case T_DIR:
+
+    // if path longer than buffer size
     if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
       printf("ls: path too long\n");
       break;
     }
+
+    // copy into buffer
     strcpy(buf, path);
     p = buf+strlen(buf);
     *p++ = '/';
+
+    // Iterate through the entire file directory
     while(read(fd, &de, sizeof(de)) == sizeof(de)){
       if(de.inum == 0)
         continue;
