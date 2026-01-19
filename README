@@ -1,12 +1,12 @@
 xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
-Version 6 (v6).  xv6 loosely follows the structure and style of v6,
+Version 6 (v6). xv6 loosely follows the structure and style of v6,
 but is implemented for a modern RISC-V multiprocessor using ANSI C.
 
 ACKNOWLEDGMENTS
 
 xv6 is inspired by John Lions's Commentary on UNIX 6th Edition (Peer
 to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
-2000)).  See also https://pdos.csail.mit.edu/6.1810/, which provides
+2000)). See also https://pdos.csail.mit.edu/6.1810/, which provides
 pointers to on-line resources for v6.
 
 The following people have made contributions: Russ Cox (context switching,
@@ -34,7 +34,7 @@ Jindong Zhang, Icenowy Zheng, ZhUyU1997, and Zou Chang Wei.
 ERROR REPORTS
 
 Please send errors and suggestions to Frans Kaashoek and Robert Morris
-(kaashoek,rtm@mit.edu).  The main purpose of xv6 is as a teaching
+(kaashoek,rtm@mit.edu). The main purpose of xv6 is as a teaching
 operating system for MIT's 6.1810, so we are more interested in
 simplifications and clarifications than new features.
 
@@ -42,5 +42,129 @@ BUILDING AND RUNNING XV6
 
 You will need a RISC-V "newlib" tool chain from
 https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
-riscv64-softmmu.  Once they are installed, and in your shell
+riscv64-softmmu. Once they are installed, and in your shell
 search path, you can run "make qemu".
+
+# Page Tables
+
+## Question 1
+
+### For every page table entry in the print_pgtbl output, explain what it logically contains and what its permission bits are. Figure 3.4 in the xv6 book might be helpful, although note that the figure might have a slightly different set of pages than process that's being inspected here.
+
+#### Raw Data
+
+<p>
+Quick Notes:
+1. pa I think stands for physical address
+</p>
+
+1.  va 0x0 pte 0x21FC885B pa 0x87F22000 perm 0x5B
+
+<p> 
+Contains: Root of the tree, a 4096-byte page table 
+</p>
+<p>
+Permission bits: 0x5B = 0101 1011
+Therefore contains accessed, user, executable, readable and valid
+</p>
+
+2.  va 0x1000 pte 0x21FC7C17 pa 0x87F1F000 perm 0x17
+
+<p> 
+Contains: The first "high-level" pte that is access by va 0x1000, which is stored in the kernel space
+</p>
+<p>
+Permission bits: 0x17 = 0001 0111 = 
+Therefore contains user, executable, readable and valid
+</p>
+3.  va 0x2000 pte 0x21FC7807 pa 0x87F1E000 perm 0x7
+<p> 
+Contains: The 2nd high level pte that is accessed via 0x2000 
+</p>
+<p>
+Permission bits: 0000 0111
+Therefore contains writable, readable and valid
+</p>
+
+4.  va 0x3000 pte 0x21FC74D7 pa 0x87F1D000 perm 0xD7
+<p> 
+Contains: A recently written file that is still "high level" page
+</p>
+<p>
+Permission bits: 0xD7 = 1101 0111 = 
+Therefore contains Dirty, Accessed, User, writable, readable and valid
+</p>
+
+5.  va 0x4000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+Contains: Nothing, empty page 
+</p>
+<p>
+Permission bits: no permissions 
+</p>
+
+6.  va 0x5000 pte 0x0 pa 0x0 perm 0x0
+<p>same as 5. </p>
+
+7.  va 0x6000 pte 0x0 pa 0x0 perm 0x0
+<p>same as 5. </p>
+
+8.  va 0x7000 pte 0x0 pa 0x0 perm 0x0
+<p>same as 5. </p>
+
+9.  va 0x8000 pte 0x0 pa 0x0 perm 0x0
+<p>same as 5. </p>
+
+10. va 0x9000 pte 0x0 pa 0x0 perm 0x0
+<p>same as 5. </p>
+
+11. va 0xFFFF6000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+12. va 0xFFFF7000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+
+13. va 0xFFFF8000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+
+14. va 0xFFFF9000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+
+15. va 0xFFFFA000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+
+16. va 0xFFFFB000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+
+17. va 0xFFFFC000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+
+18. va 0xFFFFD000 pte 0x0 pa 0x0 perm 0x0
+<p> 
+contains nothing
+</p>
+
+19. va 0xFFFFE000 pte 0x21FD08C7 pa 0x87F42000 perm 0xC7
+<p>
+Contains: L2, L1 and partial L0 but not offset
+</p>
+<p>
+permission: 0xC7 = 1100 0111 
+Permission for dirty, accessed, writable, readable ,valid
+</p>
+
+20. va 0xFFFFF000 pte 0x2000184B pa 0x80006000 perm 0x4B
+<p> </p>

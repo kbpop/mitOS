@@ -125,13 +125,22 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
-  // Allocate a trapframe page.
-  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+  // create usyscall
+  if((p->usyscall = (struct usyscall *)kalloc()) == 0){ 
     freeproc(p);
     release(&p->lock);
     return 0;
   }
+  p->usyscall->pid = p->pid;
 
+  // Allocate a trapframe page.
+  // what is happening here?
+  if((p->trapframe = (struct trapframe *)kalloc()) == 0){ 
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -158,8 +167,15 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
+
+  // Same thing for pid?
+  if(p->usyscall)
+    kfree((void*)p->usyscall);
+  p->usyscall = 0;
+
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
+
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -179,6 +195,7 @@ proc_pagetable(struct proc *p)
   pagetable_t pagetable;
 
   // An empty page table.
+  // Create a single page filled with 0s
   pagetable = uvmcreate();
   if(pagetable == 0)
     return 0;
@@ -202,6 +219,15 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+  // map the pid page just below the trampoline page, for
+  // trapframe.S.
+  if(mappages(pagetable, USYSCALL, PGSIZE,
+              (uint64)(p->usyscall), PTE_R | PTE_U) < 0){
+    uvmunmap(pagetable, TRAPFRAME, 1, 0);
+    uvmfree(pagetable, 0);
+    return 0;
+  }
+
   return pagetable;
 }
 
@@ -212,6 +238,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  uvmunmap(pagetable, USYSCALL, 1, 0);
   uvmfree(pagetable, sz);
 }
 
@@ -312,6 +339,14 @@ fork(void)
 
   pid = np->pid;
 
+  // new pid addition 
+  if((np->usyscall = (struct usyscall *)kalloc()) == 0){ 
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  np->usyscall->pid = pid;
+  
   release(&np->lock);
 
   acquire(&wait_lock);

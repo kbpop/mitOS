@@ -491,6 +491,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 void
 vmprint(pagetable_t pagetable) {
   // your code here
+  printf("page table 0x");
 }
 #endif
 

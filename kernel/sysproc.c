@@ -24,6 +24,7 @@ sys_getpid(void)
 uint64
 sys_fork(void)
 {
+  // Should I also create the pid table here? 
   return fork();
 }
 
