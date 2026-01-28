@@ -488,11 +488,35 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
 
 #ifdef LAB_PGTBL
+void vmprint_rec(pagetable_t pagetable, int indent, uint64 current_va){
+ for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if(pte & PTE_V){
+      uint64 child = PTE2PA(pte);
+
+      int shift = 12 + (indent * 9);
+      uint64 this_va = current_va | ((uint64)i << shift);
+
+      for(int ind = 0; ind < 2-indent; ind++){
+        printf(" ..");
+      }
+      printf(" ..%p pa %p %p\n", (void *)this_va, (void *)child, (void *)pagetable); 
+      if(indent != 0){
+        vmprint_rec( (pagetable_t)child, indent - 1, this_va);
+      }
+    }
+  } 
+}
+
 void
 vmprint(pagetable_t pagetable) {
   // your code here
-  printf("page table 0x");
+  printf("page table %p\n", pagetable);
+  vmprint_rec( pagetable, 2, 0);
 }
+
+
+
 #endif
 
 
