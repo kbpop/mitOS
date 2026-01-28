@@ -488,14 +488,23 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
 
 #ifdef LAB_PGTBL
+
+uint64 get_va(uint64 current_va, int index, int level){
+  // bottom 12 bits are offset
+  // find the relevant address by reverse mapping
+  int shift = 12 + (level* 9);
+  uint64 res = current_va | ((uint64)index << shift);
+  return res;
+
+}
+
 void vmprint_rec(pagetable_t pagetable, int indent, uint64 current_va){
  for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
     if(pte & PTE_V){
-      uint64 child = PTE2PA(pte);
 
-      int shift = 12 + (indent * 9);
-      uint64 this_va = current_va | ((uint64)i << shift);
+      uint64 child = PTE2PA(pte);
+      uint64 this_va = get_va(current_va, i, indent);
 
       for(int ind = 0; ind < 2-indent; ind++){
         printf(" ..");
@@ -510,13 +519,9 @@ void vmprint_rec(pagetable_t pagetable, int indent, uint64 current_va){
 
 void
 vmprint(pagetable_t pagetable) {
-  // your code here
   printf("page table %p\n", pagetable);
   vmprint_rec( pagetable, 2, 0);
 }
-
-
-
 #endif
 
 
