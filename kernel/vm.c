@@ -103,7 +103,9 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
 #ifdef LAB_PGTBL
-      if(PTE_LEAF(*pte)) {
+      if(PTE_LEAF(*pte)&& level == 1 ) {
+        return &pagetable[PX(level,va)];
+      } else {
         return pte;
       }
 #endif
@@ -324,6 +326,8 @@ void
 uvmfree(pagetable_t pagetable, uint64 sz)
 {
   if(sz > 0)
+
+    // uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     uvmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 1);
   freewalk(pagetable);
 }
@@ -510,6 +514,7 @@ void vmprint_rec(pagetable_t pagetable, int indent, uint64 current_va){
         printf(" ..");
       }
       printf(" ..%p pa %p %p\n", (void *)this_va, (void *)child, (void *)pagetable); 
+
       if(indent != 0){
         vmprint_rec( (pagetable_t)child, indent - 1, this_va);
       }
