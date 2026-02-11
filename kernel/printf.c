@@ -176,3 +176,13 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+void 
+backtrace(void)
+{
+  // TODO
+  // Something should happen here
+  uint64 fp = r_fp();
+  printf("Frame pointer: %lu", fp);
+
+}
