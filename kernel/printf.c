@@ -180,9 +180,15 @@ printfinit(void)
 void 
 backtrace(void)
 {
-  // TODO
-  // Something should happen here
-  uint64 fp = r_fp();
-  printf("Frame pointer: %lu", fp);
+  uint64 *fp = (uint64 *)r_fp();
+  uint64 Da_GROUND = PGROUNDUP((uint64)fp);
+  while((uint64)fp < Da_GROUND){
 
+    uint64 ra_val = *(fp - 1);
+    uint64 fp_new_val = *(fp - 2);
+
+    printf("%p \n", (void *)ra_val);
+
+    fp = (uint64 *)fp_new_val;
+  }
 }
