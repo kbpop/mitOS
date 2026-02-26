@@ -82,6 +82,7 @@ usertrap(void)
     if(p->ticks == p->sigalarm){
       p->sig_return = *(p->trapframe);
       p->trapframe->epc = p->sig_alarm_pointer;
+      p->ticks = 0;
     }
     yield();
   }

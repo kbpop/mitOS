@@ -114,6 +114,6 @@ uint64
 sys_sigreturn(void){
 
   struct proc *p = myproc();
-  p->trapframe = &(p->sig_return);
-  return 0;
+  *(p->trapframe) = p->sig_return;
+  return p->trapframe->a0;
 }
