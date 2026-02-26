@@ -92,3 +92,26 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Lab addtion
+uint64
+sys_sigalarm(void){
+
+  int n;
+  uint64 addr;
+
+  // get arguments
+  argint(0, &n);
+  argaddr(1, &addr);
+
+  struct proc *p = myproc();
+  p->sig_alarm_pointer = addr;
+  p->sigalarm = n;
+  return 0;
+}
+
+uint64
+sys_sigreturn(void){
+
+  return 0;
+}
