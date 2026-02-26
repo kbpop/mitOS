@@ -80,10 +80,7 @@ usertrap(void)
   if(which_dev == 2){
     p->ticks++;
     if(p->ticks == p->sigalarm){
-      struct trapframe temp;
-      temp = *(p->trapframe);
-      p->sig_return = &temp;
-
+      p->sig_return = *(p->trapframe);
       p->trapframe->epc = p->sig_alarm_pointer;
     }
     yield();

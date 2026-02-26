@@ -109,5 +109,5 @@ struct proc {
   uint64 sigalarm;
   uint64 sig_alarm_pointer;
   uint64 ticks;
-  struct trapframe *sig_return;
+  struct trapframe sig_return;
 };
