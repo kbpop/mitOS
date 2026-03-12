@@ -75,12 +75,13 @@ usertrap(void)
     if(ka == 0){
       p->killed = 1;
     } else {
-      memset((void *) ka, 0, PGSIZE);
+      memmove(ka, walkaddr(p->pagetable, va), PGSIZE);
       va = PGROUNDDOWN(va); // get the beginning of the page
       if (mappages(p->pagetable, va, PGSIZE, ka, PTE_W|PTE_U|PTE_R) != 0){
         kfree((void *)ka);
         p->killed = 1;
         }
+      kfree(va);
       }
 
   } else {
