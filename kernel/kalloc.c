@@ -35,7 +35,11 @@ kinit()
 }
 
 void inc_ref(uint64 pa){
-  ++kmem.page_ref_cnt[PGROUNDDOWN((uint64)pa) / PGSIZE];
+  acquire(&kmem.lock);
+    ++kmem.page_ref_cnt[PGROUNDDOWN((uint64)pa) / PGSIZE];
+  release(&kmem.lock);
+
+
   return;
 }
 

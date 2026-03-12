@@ -352,6 +352,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       goto err;
     }
     inc_ref(pa);
+    sfence_vma();
   }
   return 0;
 
@@ -391,6 +392,9 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
        (*pte & PTE_W) == 0)
       return -1;
     pa0 = PTE2PA(*pte);
+
+
+
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
