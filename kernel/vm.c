@@ -329,6 +329,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: page not present");
     // va -> pa information
     pa = PTE2PA(*pte);
+
+    *pte &= ~PTE_W;
+
     flags = PTE_FLAGS(*pte);
 
     /************ No longer needed *************/
@@ -345,9 +348,10 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     // int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     // assign the new pages to be Valid and Read
     // could also use the currently undefined special bits
-    if(mappages(new, i, PGSIZE, pa, flags & ~PTE_W) != 0){
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
       goto err;
     }
+    inc_ref(pa);
   }
   return 0;
 
