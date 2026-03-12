@@ -67,10 +67,10 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else if (r_scause() == 1){
+  } else if (r_scause() == 15){
     uint64 va = r_stval(); // find the va of process that caused page fault
     printf("page fault %p\n", (void *)va);
-    uvmunmap(p->pagetable, va, 1, 0);
+    uvmunmap(p->pagetable, PGROUNDDOWN(va), 1, 0);
     uint64 ka = (uint64) kalloc();
     if(ka == 0){
       p->killed = 1;
