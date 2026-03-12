@@ -70,18 +70,18 @@ usertrap(void)
   } else if (r_scause() == 15){
     uint64 va = r_stval(); // find the va of process that caused page fault
     printf("page fault %p\n", (void *)va);
-    uvmunmap(p->pagetable, PGROUNDDOWN(va), 1, 0);
     uint64 ka = (uint64) kalloc();
     if(ka == 0){
       p->killed = 1;
     } else {
-      memmove(ka, walkaddr(p->pagetable, va), PGSIZE);
+      memmove((void *)ka, (void *)walkaddr(p->pagetable, va), PGSIZE);
       va = PGROUNDDOWN(va); // get the beginning of the page
       if (mappages(p->pagetable, va, PGSIZE, ka, PTE_W|PTE_U|PTE_R) != 0){
         kfree((void *)ka);
         p->killed = 1;
         }
-      kfree(va);
+      uvmunmap(p->pagetable, PGROUNDDOWN(va), 1, 0);
+      kfree((void *)va);
       }
 
   } else {
