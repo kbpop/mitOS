@@ -345,7 +345,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     // int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     // assign the new pages to be Valid and Read
     // could also use the currently undefined special bits
-    if(mappages(new, i, PGSIZE, pa, flags & !PTE_R) != 0){
+    if(mappages(new, i, PGSIZE, pa, flags & ~PTE_W) != 0){
       goto err;
     }
   }
