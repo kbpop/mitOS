@@ -38,7 +38,7 @@ void
 freerange(void *pa_start, void *pa_end)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint64)pa_start / PGSIZE);
+  p = (char*)PGROUNDUP((uint64)pa_start);
   for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
 }
@@ -56,11 +56,11 @@ kfree(void *pa)
     panic("kfree");
 
   // Fill with junk to catch dangling refs.
-  memset(pa, 1, PGSIZE);
 
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
+  memset(pa, 1, PGSIZE);
   if(--kmem.page_ref_cnt[PGROUNDDOWN((uint64)pa) / PGSIZE] == 0){
     r->next = kmem.freelist;
     kmem.freelist = r;
