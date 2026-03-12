@@ -67,6 +67,21 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
+  } else if (r_scause() == 12){
+    uint64 va = r_stval(); // find the va of process that caused page fault
+    printf("page fault %p\n", (void *)va);
+    uint64 ka = (uint64) kalloc();
+    if(ka == 0){
+      p->killed = 1;
+    } else {
+      memset((void *) ka, 0, PGSIZE);
+      va = PGROUNDDOWN(va); // get the beginning of the page
+      if (mappages(p->pagetable, va, PGSIZE, ka, PTE_W|PTE_U|PTE_R) != 0){
+        kfree((void *)ka);
+        p->killed = 1;
+        }
+      }
+
   } else {
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());

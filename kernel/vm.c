@@ -160,8 +160,9 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
   for(;;){
     if((pte = walk(pagetable, a, 1)) == 0)
       return -1;
-    if(*pte & PTE_V)
+    if(*pte & PTE_V){
       panic("mappages: remap");
+    }
     *pte = PA2PTE(pa) | perm | PTE_V;
     if(a == last)
       break;
@@ -221,8 +222,12 @@ uvmfirst(pagetable_t pagetable, uchar *src, uint sz)
 
   if(sz >= PGSIZE)
     panic("uvmfirst: more than a page");
+
+  // create empty page
   mem = kalloc();
+  // set empty page with parent
   memset(mem, 0, PGSIZE);
+
   mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_W|PTE_R|PTE_X|PTE_U);
   memmove(mem, src, sz);
 }
@@ -311,24 +316,36 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // frees any allocated pages on failure.
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
-{
-  pte_t *pte;
+{ pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
+  // char *mem;
 
+  // For each of the pages in the parent
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
+    // va -> pa information
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
+
+    /************ No longer needed *************/
+
+    // Create a empty page
+    // if((mem = kalloc()) == 0)
+      // goto err;
+    // copy value from parent page to empty page
+    // memmove(mem, (char*)pa, PGSIZE);
+
+    /************ No longer needed *************/
+
+    // if unsuccesful in mapping va -> pa then delete page
+    // int mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
+    // assign the new pages to be Valid and Read
+    // could also use the currently undefined special bits
+    if(mappages(new, i, PGSIZE, pa, flags & !PTE_R) != 0){
       goto err;
     }
   }
