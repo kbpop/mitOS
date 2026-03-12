@@ -61,7 +61,7 @@ kfree(void *pa)
   r = (struct run*)pa;
 
   acquire(&kmem.lock);
-  if(--kmem.page_ref_cnt[(uint64)pa / PGSIZE] == 0){
+  if(--kmem.page_ref_cnt[PGROUNDDOWN((uint64)pa) / PGSIZE] == 0){
     r->next = kmem.freelist;
     kmem.freelist = r;
   }
@@ -80,7 +80,7 @@ kalloc(void)
   r = kmem.freelist;
   if(r){
     kmem.freelist = r->next;
-    kmem.page_ref_cnt[(uint64)r]++;
+    kmem.page_ref_cnt[PGROUNDDOWN((uint64)r)/ PGSIZE]++;
   }
   release(&kmem.lock);
 
