@@ -84,6 +84,7 @@ consoleread(int user_dst, uint64 dst, int n)
   char cbuf;
 
   target = n;
+  // start lock
   acquire(&cons.lock);
   while(n > 0){
     // wait until interrupt handler has put some
@@ -93,6 +94,7 @@ consoleread(int user_dst, uint64 dst, int n)
         release(&cons.lock);
         return -1;
       }
+      // will wait on user to complete line
       sleep(&cons.r, &cons.lock);
     }
 
@@ -121,6 +123,7 @@ consoleread(int user_dst, uint64 dst, int n)
       break;
     }
   }
+  // stop lock
   release(&cons.lock);
 
   return target - n;
@@ -177,7 +180,7 @@ consoleintr(int c)
   
   release(&cons.lock);
 }
-
+/* Initializes the UART hardware */
 void
 consoleinit(void)
 {
