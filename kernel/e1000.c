@@ -94,27 +94,86 @@ e1000_init(uint32 *xregs)
 int
 e1000_transmit(char *buf, int len)
 {
-  //
-  // Your code here.
-  //
   // buf contains an ethernet frame; program it into
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after send completes.
   //
+  printf("transmit: %s\n", buf);
+  // 1. First ask the E1000 for the TX ring index at which it's expecting the next packet, 
+  //  by reading the E1000_TDT control register.
+  int ring_index = regs[E1000_TDT]; 
+  printf("Ring Index: %x\n", ring_index);
 
-  
+  // 2. Then check if the the ring is overflowing.
+
+  if(ring_index >= TX_RING_SIZE){
+    return -1;
+  }
+
+  // 3. If E1000_TXD_STAT_DD is not set in the descriptor indexed by E1000_TDT,
+  //  the E1000 hasn't finished the corresponding previous transmission request, so return an error.
+  int stat = tx_ring[ring_index].status;
+  printf("stat: %x\n", stat);
+  if(!(stat & E1000_TXD_STAT_DD)){
+    return -1;
+  }
+
+  // 3. Otherwise, use kfree() to free the last buffer 
+  // that was transmitted from that descriptor (if there was one).
+  // kfree()
+
+  if(tx_bufs[ring_index] != 0){
+    kfree(tx_bufs[ring_index]); 
+  }
+
+  // 4. Then fill in the descriptor.
+  //  Set the necessary cmd flags (look at Section 3.3 in the E1000 manual)
+  //  and stash away a pointer to the buffer for later freeing.
+
+  tx_bufs[ring_index] = buf;  // set to the buf
+  tx_ring[ring_index].addr = (uint64)buf; // convert the current buf to an addresse
+  tx_ring[ring_index].length = len;
+  tx_ring[ring_index].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS;
+
+  // 5. Finally, update the ring position by adding one to E1000_TDT modulo TX_RING_SIZE.
+  regs[E1000_TDT] = (ring_index + 1) % TX_RING_SIZE;
+  // 6. If e1000_transmit() added the packet successfully to the ring,
+  //  return 0. On failure (e.g., there is no descriptor available),
+  //  return -1 so that the caller knows to free the buffer. 
+
   return 0;
 }
 
 static void
 e1000_recv(void)
 {
-  //
-  // Your code here.
-  //
-  // Check for packets that have arrived from the e1000
-  // Create and deliver a buf for each packet (using net_rx()).
-  //
+  printf("receive:\n");
+
+  // 1. First ask the E1000 for the ring index at which the next waiting received packet (if any) is located, 
+  //    by fetching the E1000_RDT control register and adding one modulo RX_RING_SIZE.
+  int ring_index =  (regs[E1000_RDT] + 1) % RX_RING_SIZE;
+
+  // 2. Then check if a new packet is available by checking for the E1000_RXD_STAT_DD bit in the status portion of the descriptor. If not, stop.
+  while((rx_ring[ring_index].status & E1000_RXD_STAT_DD)){
+
+    // 3. Deliver the packet buffer to the network stack by calling net_rx().
+    int pointer = net_rx(rx_ring[ring_index].addr, rx_ring[ring_index].length);
+
+    // 4. Then allocate a new buffer using kalloc() to replace the one just given to net_rx(). Clear the descriptor's status bits to zero.
+    rx_ring[ring_index].status = 0;
+    rx_ring[ring_index].addr = kalloc();
+
+    // 5. Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
+    regs[E1000_RDT] = ring_index;
+
+    ring_index =  (ring_index + 1) % RX_RING_SIZE;
+  }
+  // 6. e1000_init() initializes the RX ring with buffers, 
+  // and you'll want to look at how it does that and perhaps borrow code.
+
+  // 7. At some point the total number of packets that have ever arrived will exceed the ring size (16); make sure your code can handle that.
+
+  // 8. The e1000 can deliver more than one packet per interrupt; your e1000_recv should handle that situation.
 
 }
 
