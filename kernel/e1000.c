@@ -157,11 +157,11 @@ e1000_recv(void)
   while((rx_ring[ring_index].status & E1000_RXD_STAT_DD)){
 
     // 3. Deliver the packet buffer to the network stack by calling net_rx().
-    int pointer = net_rx(rx_ring[ring_index].addr, rx_ring[ring_index].length);
+    net_rx((char *)rx_ring[ring_index].addr, rx_ring[ring_index].length);
 
     // 4. Then allocate a new buffer using kalloc() to replace the one just given to net_rx(). Clear the descriptor's status bits to zero.
     rx_ring[ring_index].status = 0;
-    rx_ring[ring_index].addr = kalloc();
+    rx_ring[ring_index].addr = (uint64)kalloc();
 
     // 5. Finally, update the E1000_RDT register to be the index of the last ring descriptor processed.
     regs[E1000_RDT] = ring_index;
