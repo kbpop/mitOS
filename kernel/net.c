@@ -19,6 +19,28 @@ static uint8 host_mac[ETHADDR_LEN] = { 0x52, 0x55, 0x0a, 0x00, 0x02, 0x02 };
 
 static struct spinlock netlock;
 
+
+struct packet {
+  char *buf;
+  int len;
+};
+
+struct socket {
+  struct spinlock lock;
+  uint16 port; // bound port
+  int head; // write to
+  int tail; // read from
+  struct packet queue[16];
+};
+
+#define NUM_SOCKETS 16
+
+struct {
+  struct spinlock lock;
+  struct socket sockets[NUM_SOCKETS];
+} socktable;
+
+
 void
 netinit(void)
 {
@@ -34,9 +56,39 @@ netinit(void)
 uint64
 sys_bind(void)
 {
-  //
-  // Your code here.
-  //
+  // A process should call bind(port) before it calls recv(port, ...).
+  // If a UDP packet arrives with a destination port that hasn't been passed to bind(),
+  //  net.c should discard that packet. 
+  // The reason for this system call is to initialize any structures net.c 
+  // needs in order to store arriving packets for a subsequent recv() call.
+
+  int sport;
+  struct socket *s;
+
+  argint(0, &sport);
+
+  for(int i = 0; i < NUM_SOCKETS; i++){
+    if(socktable.sockets[i].port == sport){
+      return -1;
+    }
+  }
+
+  acquire(&socktable.lock);
+
+  for(int i = 0; i < NUM_SOCKETS; i++){
+    s = &socktable.sockets[i];
+    if(s->port == 0){
+      initlock(&s->lock, "udp_socket");
+      s->port = (uint16)sport;
+      s->head = 0;
+      s->tail = 0;
+      
+      release(&socktable.lock);
+      return 0; 
+    }
+  }
+
+  release(&socktable.lock);
 
   return -1;
 }
@@ -49,9 +101,7 @@ sys_bind(void)
 uint64
 sys_unbind(void)
 {
-  //
-  // Optional: Your code here.
-  //
+  // reverse of bind
 
   return 0;
 }
@@ -74,9 +124,25 @@ sys_unbind(void)
 uint64
 sys_recv(void)
 {
+  // This system call returns the payload of a UDP packet that arrives with destination port dport.
+  //  If one or more packets arrived before the call to recv(),
+  //  it should return right away with the earliest waiting packet.
+  //  If no packets are waiting, recv() should wait until a packet for dport arrives.
+  //  recv() should see arriving packets for a given port in arrival order.
+  //  recv() copies the packet's 32-bit source IP address to *src,
+  //  copies the packet's 16-bit UDP source port number to *sport,
+  //  copies at most maxlen bytes of the packet's UDP payload to buf,
+  //  and removes the packet from the queue.
+  //  The system call returns the number of bytes of the UDP payload copied, 
+  //  or -1 if there was an error.
   //
-  // Your code here.
-  //
+
+
+
+
+
+
+
   return -1;
 }
 
@@ -122,9 +188,9 @@ uint64
 sys_send(void)
 {
   struct proc *p = myproc();
-  int sport;
-  int dst;
-  int dport;
+  int sport; // source port 
+  int dst; // destination? 
+  int dport; // destination port 
   uint64 bufaddr;
   int len;
 
@@ -179,6 +245,8 @@ sys_send(void)
   return 0;
 }
 
+// should decide if the arriving packet is UDP, 
+// and whether its destination port has been passed to 
 void
 ip_rx(char *buf, int len)
 {
@@ -188,9 +256,24 @@ ip_rx(char *buf, int len)
     printf("ip_rx: received an IP packet\n");
   seen_ip = 1;
 
-  //
-  // Your code here.
-  //
+  struct eth *in_eth = (struct eth *) buf;
+  struct ip *in_ip = (struct ip*) (in_eth + 1);
+  struct udp *udp = (struct udp*) (in_ip + 1);
+
+  printf("len %d buffer: %s\n", len, buf);
+  if(in_ip->ip_p != IPPROTO_UDP) return;
+  
+  int i;
+  uint16 dport = ntohs(udp->dport);
+
+  for( i = 0; i < NUM_SOCKETS; i++){
+    // same destination port
+    if(socktable.sockets[i].port == dport){
+
+      
+
+    }
+  }
   
 }
 
@@ -242,6 +325,7 @@ arp_rx(char *inbuf)
   kfree(inbuf);
 }
 
+// Deliver the packet buffer to the network stack by calling net_rx
 void
 net_rx(char *buf, int len)
 {

@@ -98,11 +98,11 @@ e1000_transmit(char *buf, int len)
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after send completes.
   //
-  printf("transmit: %s\n", buf);
+  // printf("transmit: %s\n", buf);
   // 1. First ask the E1000 for the TX ring index at which it's expecting the next packet, 
   //  by reading the E1000_TDT control register.
   int ring_index = regs[E1000_TDT]; 
-  printf("Ring Index: %x\n", ring_index);
+  // printf("Ring Index: %x\n", ring_index);
 
   // 2. Then check if the the ring is overflowing.
 
@@ -113,7 +113,7 @@ e1000_transmit(char *buf, int len)
   // 3. If E1000_TXD_STAT_DD is not set in the descriptor indexed by E1000_TDT,
   //  the E1000 hasn't finished the corresponding previous transmission request, so return an error.
   int stat = tx_ring[ring_index].status;
-  printf("stat: %x\n", stat);
+  // printf("stat: %x\n", stat);
   if(!(stat & E1000_TXD_STAT_DD)){
     return -1;
   }
@@ -147,7 +147,7 @@ e1000_transmit(char *buf, int len)
 static void
 e1000_recv(void)
 {
-  printf("receive:\n");
+  // printf("receive:\n");
 
   // 1. First ask the E1000 for the ring index at which the next waiting received packet (if any) is located, 
   //    by fetching the E1000_RDT control register and adding one modulo RX_RING_SIZE.
