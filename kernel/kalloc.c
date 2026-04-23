@@ -18,15 +18,29 @@ struct run {
   struct run *next;
 };
 
-struct {
+struct memory {
   struct spinlock lock;
   struct run *freelist;
+  char *name;
 } kmem;
+
+struct memory multi_mem[NCPU];
 
 void
 kinit()
 {
-  initlock(&kmem.lock, "kmem");
+  // iterate for the number of CPUs
+  for(int i = 0; i < NCPU; i++){
+    char str[12];
+    snprintf(str, sizeof(str), "kmem%d", i);
+
+    struct memory temp;
+    temp.freelist = 0;
+    temp.name = str;
+    initlock(&temp.lock, temp.name);
+    multi_mem[i] = temp;
+  }
+
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -56,10 +70,15 @@ kfree(void *pa)
 
   r = (struct run*)pa;
 
-  acquire(&kmem.lock);
-  r->next = kmem.freelist;
-  kmem.freelist = r;
-  release(&kmem.lock);
+  // get the current cpu
+  push_off();
+  int id = cpuid();
+
+  acquire(&multi_mem[id].lock);
+  r->next = multi_mem[id].freelist;
+  multi_mem[id].freelist = r;
+  release(&multi_mem[id].lock);
+  pop_off();
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -70,13 +89,57 @@ kalloc(void)
 {
   struct run *r;
 
-  acquire(&kmem.lock);
-  r = kmem.freelist;
-  if(r)
-    kmem.freelist = r->next;
-  release(&kmem.lock);
+  // get the current cpu
+  push_off();
+  int id = cpuid();
+
+  acquire(&multi_mem[id].lock);
+  r = multi_mem[id].freelist;
+  if(r){
+    multi_mem[id].freelist = r->next;
+    release(&multi_mem[id].lock);
+  } else {
+    release(&multi_mem[id].lock);
+
+    for(int i = 0; i < NCPU; i++){
+      if(i == id) continue;
+    // loop over all of the cpu until free list is found
+      acquire(&multi_mem[i].lock);
+
+
+      // use two pointers
+
+      if(multi_mem[i].freelist){
+        struct run *head = multi_mem[i].freelist;
+        struct run *slow = head;
+        struct run *fast = head;
+
+        while(fast->next && fast->next->next){
+          slow = slow->next;
+          fast = fast->next->next;
+        }
+
+        multi_mem[i].freelist = slow->next;
+        release(&multi_mem[i].lock); 
+
+        r = head;
+        struct run *surplus = head->next; 
+        slow->next = 0;
+
+        if(surplus){
+          acquire(&multi_mem[id].lock);
+          slow->next = multi_mem[id].freelist;
+          multi_mem[id].freelist = surplus;
+          release(&multi_mem[id].lock);
+        }
+        break;
+      }
+      release(&multi_mem[i].lock);
+    }
+  }
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
+  pop_off();
   return (void*)r;
 }
