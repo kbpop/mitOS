@@ -106,13 +106,34 @@ kalloc(void)
     // loop over all of the cpu until free list is found
       acquire(&multi_mem[i].lock);
 
-        if(multi_mem[i].freelist){
-          r = multi_mem[i].freelist;
-          multi_mem[i].freelist = multi_mem[i].freelist->next;
 
-          release(&multi_mem[i].lock);
-          break;
-      } 
+      // use two pointers
+
+      if(multi_mem[i].freelist){
+        struct run *head = multi_mem[i].freelist;
+        struct run *slow = head;
+        struct run *fast = head;
+
+        while(fast->next && fast->next->next){
+          slow = slow->next;
+          fast = fast->next->next;
+        }
+
+        multi_mem[i].freelist = slow->next;
+        release(&multi_mem[i].lock); 
+
+        r = head;
+        struct run *surplus = head->next; 
+        slow->next = 0;
+
+        if(surplus){
+          acquire(&multi_mem[id].lock);
+          slow->next = multi_mem[id].freelist;
+          multi_mem[id].freelist = surplus;
+          release(&multi_mem[id].lock);
+        }
+        break;
+      }
       release(&multi_mem[i].lock);
     }
   }
