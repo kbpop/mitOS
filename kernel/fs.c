@@ -396,6 +396,7 @@ bmap(struct inode *ip, uint bn)
   }
   bn -= NDIRECT;
 
+  // bn < 256
   if(bn < NINDIRECT){
     // Load indirect block, allocating if necessary.
     if((addr = ip->addrs[NDIRECT]) == 0){
@@ -410,6 +411,50 @@ bmap(struct inode *ip, uint bn)
       addr = balloc(ip->dev);
       if(addr){
         a[bn] = addr;
+        log_write(bp);
+      }
+    }
+    brelse(bp);
+    return addr;
+  }
+
+  // adjust to 0
+  bn -= NINDIRECT;
+
+  uint N_NINDIRECT = 12;
+
+  if(bn < NINDIRECT * NINDIRECT){
+
+    // allocate indirect block 
+    // this should occur when blocks grow larger 256
+    if((addr = ip->addrs[N_NINDIRECT]) == 0){
+      addr = balloc(ip->dev);
+      if(addr == 0)
+        return 0;
+      ip->addrs[N_NINDIRECT] = addr;
+    }
+
+    // grab indirect block
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    int adjIndex = bn / NINDIRECT;
+
+    if((addr = a[adjIndex]) == 0){
+      addr = balloc(ip->dev);
+      if(addr){
+        a[adjIndex] = addr;
+        log_write(bp);
+      }
+    }
+    brelse(bp);
+
+    // go one level deeper
+    bp = bread(ip->dev, addr);
+    a = (uint*)bp->data;
+    if((addr = a[bn % NINDIRECT]) == 0){
+      addr = balloc(ip->dev);
+      if(addr){
+        a[bn % NINDIRECT] = addr;
         log_write(bp);
       }
     }
