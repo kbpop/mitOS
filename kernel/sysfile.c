@@ -129,6 +129,10 @@ sys_symlink(void)
   int fd;
   struct file *f;
 
+  // should get the target and the path variable from the sys call stack
+
+
+
   // call open
 
 
