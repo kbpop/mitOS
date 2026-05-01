@@ -107,6 +107,16 @@ sys_close(void)
   return 0;
 }
 
+
+uint64
+sys_symlink(void)
+{
+  int fd;
+  struct file *f;
+
+  return 0;
+}
+
 uint64
 sys_fstat(void)
 {
