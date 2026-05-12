@@ -107,37 +107,7 @@ sys_close(void)
   return 0;
 }
 
-// Implement the symlink(target, path) 
-// system call to create a new symbolic link at path that refers to target.
-//  Note that target does not need to exist for the system call to succeed.
-// You will need to choose somewhere to store the target path of a symbolic link,
-// for example, in the inode's data blocks.
-// symlink should return an integer representing success (0) or failure (-1)
-// similar to link and unlink.
-// Modify the open system call to handle the case where the path refers to a symbolic link.
-// If the file does not exist, open must fail.
-// When a process specifies O_NOFOLLOW in the flags to open,
-// open should open the symlink (and not follow the symbolic link).
-// If the linked file is also a symbolic link,
-// you must recursively follow it until a non-link file is reached.
-// If the links form a cycle, you must return an error code.
-// You may approximate this by returning an error code if the depth of links reaches some threshold
 
-uint64
-sys_symlink(void)
-{
-  int fd;
-  struct file *f;
-
-  // should get the target and the path variable from the sys call stack
-
-
-
-  // call open
-
-
-  return 0;
-}
 
 uint64
 sys_fstat(void)
@@ -288,7 +258,7 @@ create(char *path, short type, short major, short minor)
   if((ip = dirlookup(dp, name, 0)) != 0){
     iunlockput(dp);
     ilock(ip);
-    if(type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
+    if((type == T_FILE || type == T_SYMLINK) && (ip->type == T_FILE || ip->type == T_DEVICE || ip->type == T_SYMLINK))
       return ip;
     iunlockput(ip);
     return 0;
@@ -311,6 +281,7 @@ create(char *path, short type, short major, short minor)
       goto fail;
   }
 
+
   if(dirlink(dp, name, ip->inum) < 0)
     goto fail;
 
@@ -332,6 +303,8 @@ create(char *path, short type, short major, short minor)
   iunlockput(dp);
   return 0;
 }
+
+
 
 uint64
 sys_open(void)
@@ -533,5 +506,48 @@ sys_pipe(void)
     fileclose(wf);
     return -1;
   }
+  return 0;
+}
+
+// Implement the symlink(target, path) 
+// system call to create a new symbolic link at path that refers to target.
+//  Note that target does not need to exist for the system call to succeed.
+// You will need to choose somewhere to store the target path of a symbolic link,
+// for example, in the inode's data blocks.
+// symlink should return an integer representing success (0) or failure (-1)
+// similar to link and unlink.
+// Modify the open system call to handle the case where the path refers to a symbolic link.
+// If the file does not exist, open must fail.
+// When a process specifies O_NOFOLLOW in the flags to open,
+// open should open the symlink (and not follow the symbolic link).
+// If the linked file is also a symbolic link,
+// you must recursively follow it until a non-link file is reached.
+// If the links form a cycle, you must return an error code.
+// You may approximate this by returning an error code if the depth of links reaches some threshold
+
+uint64
+sys_symlink(void)
+{
+  char target[MAXPATH];
+  char path[MAXPATH];
+  
+  if(argstr(0, target, MAXPATH) != 0 ){
+    return -1;
+  }
+  if(argstr(1, path, MAXPATH) != 0 ){
+    return -1;
+  }
+  begin_op();
+  struct inode *i = create(path, T_SYMLINK, 0, 0);
+  if(i == 0){
+    end_op();
+    return -1;
+  }
+
+  writei(i, 0, (uint64)target, 0, strlen(target) + strlen(path));
+
+  iunlockput(i);
+  end_op();
+
   return 0;
 }
