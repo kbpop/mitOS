@@ -42,3 +42,6 @@ void *memcpy(void *, const void *, uint);
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+// thread library
+int thread_create(void (*start_routine)(void *, void *), void *arg1, void *arg2);

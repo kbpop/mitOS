@@ -107,4 +107,6 @@ struct proc {
 
   // trace mask addition for tracing
   int trace_mask;
+  // addition for threads
+  uint64 user_stack;
 };
